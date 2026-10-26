@@ -53,16 +53,11 @@ def pipeline_fato():
         df_fato['FullDate'] = pd.to_datetime(df_fato['RateChangeDate']).dt.date.astype(str)
         df_fato['FullTime'] = pd.to_datetime(df_fato['RateChangeDate']).dt.time.astype(str)
 
-        #df_fato['RateChangeDate'] = df_fato['RateChangeDate'].astype(str)
-
-        #df_ddate = pg_hook.get_pandas_df("SELECT DateID, FullDate FROM dw.ddate;")
-        #df_dtime = pg_hook.get_pandas_df("SELECT TimeID, FullTime FROM dw.dtime;")
-
         df_ddate = pg_hook.get_pandas_df("SELECT DateID, FullDate FROM dw.ddate;")
-        df_ddate.columns = ['DateID', 'FullDate'] # Garante o nome correto no Pandas
+        df_ddate.columns = ['DateID', 'FullDate']
 
         df_dtime = pg_hook.get_pandas_df("SELECT TimeID, FullTime FROM dw.dtime;")
-        df_dtime.columns = ['TimeID', 'FullTime'] # Garante o nome correto no Pandas
+        df_dtime.columns = ['TimeID', 'FullTime']
 
         df_ddate['FullDate'] = df_ddate['FullDate'].astype(str)
         df_dtime['FullTime'] = df_dtime['FullTime'].astype(str)
@@ -87,18 +82,6 @@ def pipeline_fato():
 
         df_final = df_final[colunas_finais]
         registros_fato = df_final.to_records(index=False).tolist()
-
-        #colunas_fato = [
-        #    'EmployeeID', 'DepartmentID', 'ShiftID', 'PayHistoryID',
-        #    'JobCandidateID', 'RateChangeDate', 'Rate'
-        #]
-        #df_final = df_final[colunas_fato]
-        #registros_fato = df_final.to_records(index=False).tolist()
-
-        #colunas_postgres = [
-        #    'EmployeeID', 'DepartmentID', 'ShiftID', 'PayHistoryID',
-        #    'JobCandidateID', 'date', 'rate'
-        #]
 
         pg_hook.insert_rows(
             table='dw.fhuman_resources',

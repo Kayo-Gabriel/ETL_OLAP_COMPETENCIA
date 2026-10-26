@@ -1,12 +1,3 @@
-CREATE TABLE dw_metadata (
-    id serial primary key,
-    table_name varchar(100) not null,
-    last_load_date timestamp not null,
-    records_processed int default 0
-);
-
-select * from dw_metadata;
-
 CREATE TABLE ddate(
     DateID serial primary key,
     FullDate date not null,
@@ -16,8 +7,6 @@ CREATE TABLE ddate(
     Semester smallint not null
 );
 
-select * from ddate;
-
 CREATE TABLE dtime(
     TimeID serial primary key,
     FullTime time not null,
@@ -26,8 +15,6 @@ CREATE TABLE dtime(
     Second smallint not null
 );
 
-select * from dtime;
-
 CREATE TABLE dshift(
     ShiftID int primary key,
     Name varchar(100) not null,
@@ -35,29 +22,21 @@ CREATE TABLE dshift(
     EndTime time
 );
 
-select * from dshift;
-
 CREATE TABLE ddepartment(
     DepartmentID int primary key,
     Name varchar(100) not null,
     GroupName varchar(100) not null
 );
 
-select * from ddepartment;
-
 CREATE TABLE djob_candidate(
     JobCandidateID int primary key,
     Resume text
 );
 
-select * from djob_candidate;
-
 CREATE TABLE dpay_history(
     PayHistoryID int primary key,
     PayFrequence smallint not null
 );
-
-select * from dpay_history;
 
 CREATE TABLE demployee(
     EmployeeID int primary key,
@@ -74,8 +53,6 @@ CREATE TABLE demployee(
     CurrentFlag smallint check(CurrentFlag in (0,1))
 );
 
-select * from demployee;
-
 CREATE TABLE fhuman_resources(
     FHumanResources serial primary key,
     DateID int not null REFERENCES ddate(DateID),
@@ -89,5 +66,3 @@ CREATE TABLE fhuman_resources(
     VacationHours smallint not null,
     SickLeaveHours smallint not null
 );
-
-select * from fhuman_resources;

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import pandas as pd
 from airflow.decorators import dag, task
+from airflow.models import Variable
 from airflow.providers.microsoft.mssql.hooks.mssql import MsSqlHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
@@ -75,7 +76,10 @@ def pipeline_dimensoes():
         sql_hook = MsSqlHook(mssql_conn_id='sqlserver_oltp')
         pg_hook = PostgresHook(postgres_conn_id='postgres_olap')
 
-        query = """
+        ultima_data_func = Variable.get("ultima_data_carga_funcionarios", default_var="1900-01-01")
+        print(f"Buscando funcionários modificados após: {ultima_data_func}")
+
+        query = f"""
             SELECT
                 BusinessEntityID as EmployeeID,
                 NationalIDNumber,
@@ -89,9 +93,16 @@ def pipeline_dimensoes():
                 HireDate,
                 SalariedFlag,
                 CurrentFlag
-            FROM HumanResources.Employee;
+            FROM HumanResources.Employee
+            WHERE ModifiedDate > '{ultima_data_func}';
         """
+
         df = sql_hook.get_pandas_df(query)
+
+        if df.empty:
+            print("Nenhum dado novo encontrado para funcionários.")
+            return "Funcionários atualizados (Sem dados novos)"
+
         if not df.empty:
             df['LoginID'] = df['LoginID'].str.strip()
             df['JobTitle'] = df['JobTitle'].str.strip()
@@ -110,12 +121,18 @@ def pipeline_dimensoes():
             df = df[colunas_ordenadas]
             registros = df.to_records(index=False).tolist()
 
-            pg_hook.run("TRUNCATE TABLE dw.demployee RESTART IDENTITY CASCADE;")
             pg_hook.insert_rows(
                 table='dw.demployee',
                 rows=registros,
-                target_fields=colunas_ordenadas
+                target_fields=colunas_ordenadas,
+                replace=True,
+                replace_index='EmployeeID'
             )
+
+            nova_data_limite = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            Variable.set("ultima_data_carga_funcionarios", nova_data_limite)
+            print(f"Variável 'ultima_data_carga_funcionarios' atualizada para: {nova_data_limite}")
+
         return "Funcionários carregados!"
 
     @task
@@ -133,7 +150,6 @@ def pipeline_dimensoes():
                 'Semester': (dates.month - 1) // 6 + 1
             })
             registros = df.to_records(index=False).tolist()
-            # Omitimos o DateID no target_fields pois ele é serial (gerado automaticamente pelo banco)
             pg_hook.insert_rows(
                 table='dw.ddate',
                 rows=registros,
@@ -155,7 +171,6 @@ def pipeline_dimensoes():
                 'Second': times.second
             })
             registros = df.to_records(index=False).tolist()
-            # Omitimos o TimeID no target_fields pois ele é serial (gerado automaticamente pelo banco)
             pg_hook.insert_rows(
                 table='dw.dtime',
                 rows=registros,
@@ -183,7 +198,6 @@ def pipeline_dimensoes():
             )
         return "Candidato padrão carregado!"
 
-    # Orquestração das tarefas
     dep = carregar_departamentos()
     shift = carregar_turnos()
     pay = carregar_pagamentos()
